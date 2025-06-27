@@ -10,14 +10,20 @@ export const sidebarItems = [
   {
     id: 3,
     icon: "/assets/icons/users.svg",
-    label: "All Users",
-    href: "/all-users",
+    label: "Study",
+    href: "/study",
   },
   {
     id: 4,
     icon: "/assets/icons/itinerary.svg",
-    label: "AI Trips",
-    href: "/trips",
+    label: "AI Summarizer",
+    href: "/aisummarizer",
+  },
+  {
+    id: 5,
+    icon: "/assets/icons/itinerary.svg",
+    label: "Mini-Games",
+    href: "/mini-games",
   },
 ];
 

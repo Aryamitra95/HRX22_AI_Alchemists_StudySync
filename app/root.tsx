@@ -26,9 +26,9 @@ export const links: Route.LinksFunction = () => [
 import {registerLicense} from "@syncfusion/ej2-base";
 registerLicense(import.meta.env.VITE_SYNC_FUSION_LICENSE_KEY);
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout() {
   return (
-    <html lang="en">
+      <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -36,17 +36,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
-        <ScrollRestoration />
-        <Scripts />
+      <Outlet />
+      <ScrollRestoration />
+      <Scripts />
       </body>
-    </html>
+      </html>
   );
 }
 
-export default function App() {
-  return <Outlet />;
-}
+
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = "Oops!";
