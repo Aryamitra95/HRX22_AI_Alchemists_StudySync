@@ -41,6 +41,15 @@ const Study: React.FC = () => {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const [distractionScore, setDistractionScore] = useState(0);
     const [showPlaylistManager, setShowPlaylistManager] = useState(false);
+    
+    // Modal state
+    const [showModal, setShowModal] = useState(false);
+    
+    // Quiz modal state
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [score, setScore] = useState(0);
 
     // Get user data on component mount
     useEffect(() => {
@@ -61,7 +70,7 @@ const Study: React.FC = () => {
             if (!user) return;
             
             try {
-                const userPlaylistsWithVideos = await getUserPlaylistsWithVideos(user.name || 'user1');
+                const userPlaylistsWithVideos = await getUserPlaylistsWithVideos();
                 
                 // Convert DB format to component format
                 const convertedPlaylists: Playlist[] = userPlaylistsWithVideos.map(playlist => ({
@@ -176,6 +185,53 @@ const Study: React.FC = () => {
         setPlaylists(updatedPlaylists);
     };
 
+    // Modal handlers
+    const handleOpenModal = () => {
+        setShowModal(true);
+        resetQuiz();
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+    };
+
+    // Quiz handlers
+    const handleAnswerSelect = (answer: string) => {
+        if (isAnswered || !quiz || !quiz[currentQuestionIndex]) return; // Prevent multiple selections and null access
+        
+        setSelectedAnswer(answer);
+        setIsAnswered(true);
+        
+        // Update score if answer is correct
+        if (answer === quiz[currentQuestionIndex].answer) {
+            setScore(prev => prev + 1);
+        }
+    };
+
+    const handleNextQuestion = () => {
+        if (!quiz || currentQuestionIndex < quiz.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setSelectedAnswer(null);
+            setIsAnswered(false);
+        }
+    };
+
+    const handleFinishQuiz = () => {
+        setShowModal(false);
+        // Reset quiz state
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setIsAnswered(false);
+        setScore(0);
+    };
+
+    const resetQuiz = () => {
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setIsAnswered(false);
+        setScore(0);
+    };
+
     const videoId = getVideoId(url);
     return (
         <main className="dashboard wrapper">
@@ -286,6 +342,86 @@ const Study: React.FC = () => {
                     </div>
                 )}
 
+                {/* Custom Modal Window */}
+                {showModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto relative">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-gray-800">Quiz</h2>
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            
+                            {quiz && quiz.length > 0 && currentQuestionIndex < quiz.length ? (
+                                <div className="text-gray-700">
+                                    {/* Progress indicator */}
+                                    <div className="mb-4 text-sm text-gray-500">
+                                        Question {currentQuestionIndex + 1} of {quiz.length}
+                                    </div>
+                                    
+                                    {/* Current question */}
+                                    <div className="mb-6">
+                                        <h3 className="text-lg font-semibold mb-4">
+                                            {quiz[currentQuestionIndex].question}
+                                        </h3>
+                                        
+                                        {/* Answer options */}
+                                        <div className="space-y-3">
+                                            {quiz[currentQuestionIndex].options.map((option, index) => (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => handleAnswerSelect(option)}
+                                                    disabled={isAnswered}
+                                                    className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                                                        selectedAnswer === option
+                                                            ? option === quiz[currentQuestionIndex].answer
+                                                                ? 'bg-green-100 border-green-500 text-green-700'
+                                                                : 'bg-red-100 border-red-500 text-red-700'
+                                                            : isAnswered && option === quiz[currentQuestionIndex].answer
+                                                            ? 'bg-green-100 border-green-500 text-green-700'
+                                                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                                                    } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Navigation button */}
+                                    {isAnswered && (
+                                        <div className="flex justify-end">
+                                            {currentQuestionIndex < quiz.length - 1 ? (
+                                                <button
+                                                    onClick={handleNextQuestion}
+                                                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                                                >
+                                                    Next
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handleFinishQuiz}
+                                                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
+                                                >
+                                                    Finish
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-gray-700">
+                                    <p>No quiz questions available.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* {!isPlaying && url && (
                     <div className=" mt-6 bg-[#f0f9ff] rounded-2xl border border-blue-300 shadow-[0_0_20px_rgba(0,200,120,0.15)] p-4 transition-all mt-6">
                         {currentTimestamp > 0 ? (
@@ -306,6 +442,14 @@ const Study: React.FC = () => {
                             <div className="mb-6">
                                 <h2 className="text-xl font-bold mb-2 text-blue-800">Summary</h2>
                                 <p className="text-gray-700 leading-relaxed"><ReactMarkdown>{summary}</ReactMarkdown></p>
+                                {quiz && quiz.length > 0 && (
+                                    <button
+                                        onClick={handleOpenModal}
+                                        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        Open Quiz
+                                    </button>
+                                )}
                             </div>
                         )}
 
