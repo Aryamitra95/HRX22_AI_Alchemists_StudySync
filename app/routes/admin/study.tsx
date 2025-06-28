@@ -1,6 +1,6 @@
 import React,{useState, useRef, useEffect} from 'react'
 import ReactMarkdown from 'react-markdown';
-import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer} from "../../../components";
+import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer, PlaylistManager} from "../../../components";
 import AudioVisualizer from 'components/AudioVisualizer';
 
 interface YouTubePlayerHandle {
@@ -25,6 +25,7 @@ const Study: React.FC = () => {
     const [showVideo, setShowVideo] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const [distractionScore, setDistractionScore] = useState(0);
+    const [showPlaylistManager, setShowPlaylistManager] = useState(false);
 
     useEffect(() => {
         console.log('Distraction score updated:', distractionScore);
@@ -107,10 +108,31 @@ const Study: React.FC = () => {
         }
     };
 
+    const handleVideoSelect = (videoId: string, title: string) => {
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        setInputUrl(youtubeUrl);
+        setUrl(youtubeUrl);
+        setShowPlaylistManager(false);
+        alert(`Selected: ${title}`);
+    };
+
     const videoId = getVideoId(url);
     return (
         <main className="dashboard wrapper">
             <div className="min-h-screen bg-white text-black p-6">
+                {/* Playlist Manager Button */}
+                <div className="mb-4 flex justify-end">
+                    <button
+                        onClick={() => setShowPlaylistManager(true)}
+                        className="bg-[#0056D3] text-white px-4 py-2 rounded-md hover:bg-[#0047B3] flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                        </svg>
+                        Manage Playlists
+                    </button>
+                </div>
+
                 <div className="flex justify-start items-start gap-20">
                     {/* Left Section: Input + Player + ScoreGraph */}
                     <div className="flex flex-col gap-4 w-full max-w-2xl">
@@ -191,6 +213,19 @@ const Study: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Playlist Manager Modal */}
+                {showPlaylistManager && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <PlaylistManager 
+                                onVideoSelect={handleVideoSelect}
+                                onClose={() => setShowPlaylistManager(false)}
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* {!isPlaying && url && (
                     <div className=" mt-6 bg-[#f0f9ff] rounded-2xl border border-blue-300 shadow-[0_0_20px_rgba(0,200,120,0.15)] p-4 transition-all mt-6">
                         {currentTimestamp > 0 ? (
@@ -201,6 +236,7 @@ const Study: React.FC = () => {
                     </div>
 
                 )} */}
+                {url &&(
                 <div className="max-w-3xl mx-auto mt-10 p-6 bg-white shadow-md rounded-xl border border-gray-200">
                 {loading ? (
                     <p className="text-center text-blue-600 font-semibold">Generating summary and quiz...</p>
@@ -236,13 +272,15 @@ const Study: React.FC = () => {
                     </>
                 )}
             </div>
-
+)}
 
 
 
             </div>
+            
         </main>
 
     )
 }
+
 export default Study

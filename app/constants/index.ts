@@ -17,7 +17,7 @@ export const sidebarItems = [
     id: 4,
     icon: "/assets/icons/itinerary.svg",
     label: "AI Summarizer",
-    href: "/aisummarizer",
+    href: "/ai-summarizer",
   },
   {
     id: 5,

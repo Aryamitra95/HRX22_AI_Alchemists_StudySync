@@ -1,3 +1,4 @@
+export {default as AudioVisualizer} from './AudioVisualizer';
 export {default as NavItems} from './NavItems';
 export {default as MobileSidebar} from './MobileSidebar';
 export {default as Header} from './Header';
@@ -10,3 +11,6 @@ export {default as ScoreGraph} from './ScoreGraph';
 export {default as Summarizer} from './Summarizer';
 export {default as ErrorBoundary} from './ErrorBoundary';
 export {default as AuthGuard} from './AuthGuard';
+export {default as WebSummarizer} from './WebSummarizer';
+export {default as PlaylistManager} from './PlaylistManager';
+export {default as ProgressTab} from './ProgressTab';

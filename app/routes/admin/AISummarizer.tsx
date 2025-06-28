@@ -1,8 +1,11 @@
+import { WebSummarizer } from 'components'
 import React from 'react'
 
 const AiSummarizer = () => {
     return (
-        <div>AiSummarizer</div>
+        <div>
+            <WebSummarizer />
+        </div>
     )
 }
 export default AiSummarizer
