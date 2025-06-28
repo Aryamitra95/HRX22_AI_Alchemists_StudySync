@@ -1,8 +1,14 @@
 import React,{useState, useRef} from 'react'
+import ReactMarkdown from 'react-markdown';
 import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer} from "../../../components";
 
 interface YouTubePlayerHandle {
     getCurrentTime: () => number;
+}
+interface QuizItem {
+    question: string;
+    options: string[];
+    answer: string;
 }
 
 const Study: React.FC = () => {
@@ -12,7 +18,7 @@ const Study: React.FC = () => {
     const [currentTimestamp, setCurrentTimestamp] = useState(0);
     const [url, setUrl] = useState("");
     const [summary, setSummary] = useState('');
-    const [quiz, setQuiz] = useState([]);
+    const [quiz, setQuiz] = useState<QuizItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
@@ -42,7 +48,7 @@ const Study: React.FC = () => {
 
         alert("Starting concentration monitoring... Please turn on your camera.");
 
-        const videoId = getVideoId(trimmedUrl);
+        const videoId = getVideoId(inputUrl);
 
         setLoading(true);
         try {
@@ -142,7 +148,7 @@ const Study: React.FC = () => {
                         </div>
                     )}
                 </div>
-                {!isPlaying && url && (
+                {/* {!isPlaying && url && (
                     <div className=" mt-6 bg-[#f0f9ff] rounded-2xl border border-blue-300 shadow-[0_0_20px_rgba(0,200,120,0.15)] p-4 transition-all mt-6">
                         {currentTimestamp > 0 ? (
                         <Summarizer videoId={videoId} timestamp={currentTimestamp} />
@@ -151,7 +157,45 @@ const Study: React.FC = () => {
                         )}
                     </div>
 
+                )} */}
+                <div className="max-w-3xl mx-auto mt-10 p-6 bg-white shadow-md rounded-xl border border-gray-200">
+                {loading ? (
+                    <p className="text-center text-blue-600 font-semibold">Generating summary and quiz...</p>
+                ) : (
+                    <>
+                        {summary && (
+                            <div className="mb-6">
+                                <h2 className="text-xl font-bold mb-2 text-blue-800">Summary</h2>
+                                <p className="text-gray-700 leading-relaxed"><ReactMarkdown>{summary}</ReactMarkdown></p>
+                            </div>
+                        )}
+
+                        {quiz.length > 0 && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4 text-green-700">Quiz</h2>
+                                {quiz.map((q, index) => (
+                                    <div key={index} className="mb-6 p-4 border border-gray-300 rounded-lg">
+                                        <p className="font-medium mb-2">
+                                            Q{index + 1}: {q.question}
+                                        </p>
+                                        <ul className="list-disc ml-5 text-gray-700">
+                                            {q.options.map((opt, i) => (
+                                                <li key={i}>{opt}</li>
+                                            ))}
+                                        </ul>
+                                        <p className="mt-2 font-semibold text-sm text-green-600">
+                                            Answer: {q.answer}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
+            </div>
+
+
+
 
             </div>
         </main>
