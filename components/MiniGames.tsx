@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FocusTimer, ScoreGraph } from "./index";
 
 // --- Game Data and Types ---
 interface GameData {
@@ -94,9 +93,6 @@ const MiniGames: React.FC = () => {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'completed'>('menu');
   const [score, setScore] = useState(0);
-  const [currentScore, setCurrentScore] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -167,18 +163,12 @@ const MiniGames: React.FC = () => {
     setSelectedGame(gameType);
     setGameState('playing');
     setScore(0);
-    setCurrentScore(0);
-    setIsPlaying(true);
-    setTimeLeft(GAME_DATA[gameType].timeLimit);
   };
 
   const handleBackToMenu = () => {
     setGameState('menu');
     setSelectedGame(null);
     setScore(0);
-    setCurrentScore(0);
-    setIsPlaying(false);
-    setTimeLeft(0);
     setQuizQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
@@ -186,24 +176,6 @@ const MiniGames: React.FC = () => {
     setCorrectAnswers(0);
     setShowExplanation(false);
   };
-
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setIsPlaying(false);
-            setGameState('completed');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, timeLeft]);
 
   // --- AI Quiz Game ---
   const AIQuizGame = () => {
@@ -234,7 +206,6 @@ const MiniGames: React.FC = () => {
       setIsAnswered(true);
       if (answerIndex === quizQuestions[currentQuestionIndex].correctAnswer) {
         setCorrectAnswers(prev => prev + 1);
-        setCurrentScore(prev => prev + 10);
       }
       setShowExplanation(true);
     };
@@ -408,7 +379,6 @@ const MiniGames: React.FC = () => {
             setMatchedPairs(prev => new Set([...prev, firstIdx]));
             setSelectedCards([]);
             setLastMatch(true);
-            setCurrentScore(prev => prev + 10);
           }, 500);
         } else {
           setTimeout(() => {
@@ -506,7 +476,6 @@ const MiniGames: React.FC = () => {
               Math.floor(Math.random() * boardSize),
               Math.floor(Math.random() * boardSize)
             ]);
-            setCurrentScore(prev => prev + 10);
           } else {
             newSnake.pop();
           }
@@ -710,23 +679,14 @@ const MiniGames: React.FC = () => {
                   </div>
                 )}
               </div>
-              {/* Score Graph Box */}
-              <div className="bg-[#f0f9ff] rounded-2xl border border-blue-300 shadow-[0_0_20px_rgba(0,200,120,0.15)] p-4 transition-all">
-                <ScoreGraph />
-              </div>
             </div>
             {/* Right Section: Timer + Current Score */}
             <div className="flex flex-col items-center gap-6 w-72">
-              {/* Timer Container */}
-              <div className="bg-[#f0f9ff] rounded-xl border border-blue-300/40 p-4 w-full">
-                <FocusTimer isPlaying={isPlaying} />
-              </div>
               {/* Current Score Container */}
               <div className="bg-[#f0f9ff] rounded-xl border border-blue-300/40 p-4 w-full">
                 <div className="text-center">
                   <h4 className="font-semibold text-lg mb-2">Current Score</h4>
-                  <div className="text-3xl font-bold text-blue-600">{currentScore}</div>
-                  <div className="text-sm text-gray-600 mt-1">Time Left: {timeLeft}s</div>
+                  <div className="text-3xl font-bold text-blue-600">{score}</div>
                 </div>
               </div>
               {/* Back to Menu Button */}
