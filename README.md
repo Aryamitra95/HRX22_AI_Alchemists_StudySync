@@ -1,91 +1,93 @@
-<<<<<<< HEAD
 # StudySync
-=======
-# Welcome to React Router!
 
-A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
-
-## Getting Started
-
-### Installation
-
-Install the dependencies:
-
-```bash
-npm install
-```
-
-### Development
-
-Start the development server with HMR:
-
-```bash
-npm run dev
-```
-
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
-
-```bash
-npm run build
-```
-
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the 'built-in app' server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+**StudySync** is an educational tool integrating YouTube video playback, AI-powered summarization, and real-time concentration tracking. The backend leverages `asutoshp10/ConcentrationBackend` for analytics, while the frontend handles user interaction and video management.
 
 ---
 
-Built with ❤️ using React Router.
->>>>>>> 1a98993 (Setup)
+## Features
+
+- **YouTube Video Integration**: Play and manage YouTube videos directly.
+- **AI Summarization**: Automatically generate concise summaries and quiz questions from video transcripts.
+- **Focus Tracking**: Monitor concentration levels during study sessions using webcam input.
+- **Session Reports**: Access historical data and performance metrics.
+- **Quiz Generation**: Create assessments from video content.
+
+---
+
+## Setup
+
+### Prerequisites
+
+- **Python 3.8+**
+- **Node.js v16+**
+- **Google Cloud API key** (for YouTube integration)
+
+### Installation
+
+Clone repositories
+git clone https://github.com/Aryamitra95/HRX22_AI_Alchemists_StudySync
+git clone https://github.com/asutoshp10/ConcentrationBackend
+
+Install frontend dependencies
+cd HRX22_AI_Alchemists_StudySync/frontend
+npm install
+
+Setup backend
+cd ../../ConcentrationBackend
+pip install -r requirements.txt
+
+---
+
+## Configuration
+
+1. **Backend Setup**
+
+   Create `.env` file in the backend directory:
+
+2. **Frontend Setup**
+
+Update `frontend/src/services/api.js` with your backend URL:
+const BASE_URL = "http://localhost:5000"; // ConcentrationBackend URL
+---
+
+## Usage
+
+1. **Start Backend Service**
+
+cd ConcentrationBackend
+python app.py
+
+text
+
+2. **Launch Frontend**
+
+cd HRX22_AI_Alchemists_StudySync/frontend
+npm start
+
+text
+
+3. **Core Workflow**
+
+- **Video Summarization**
+  - Paste a YouTube URL and click "Generate Summary".
+  - View key points and quiz questions.
+- **Concentration Tracking**
+  - Enable webcam during study sessions.
+  - Monitor real-time focus metrics.
+- **Session Reports**
+  - Access historical data via the `/reports` endpoint.
+
+---
+
+## Troubleshooting
+
+- **Quiz Generation Failures**: Ensure video transcripts are enabled on YouTube.
+- **Concentration Model Errors**: Verify camera permissions and model path in `.env`.
+- **API Connection Issues**: Check CORS settings in the backend configuration.
+
+---
+
+## Contribution
+
+For contribution guidelines and known issues, visit the [project wiki](https://github.com/Aryamitra95/HRX22_AI_Alchemists_StudySync).
+
