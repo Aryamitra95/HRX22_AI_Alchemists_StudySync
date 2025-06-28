@@ -56,44 +56,27 @@ const Dashboard = ({loaderData}:Route.ComponentProps) => {
     };
 
     const handleAddPlaylist = (name: string) => {
-        const newPlaylist: Playlist = {
-            id: Date.now().toString(),
-            name,
-            videos: []
-        };
-        setPlaylists(prev => [...prev, newPlaylist]);
-        console.log('Added playlist:', name);
+        console.log('Adding playlist:', name);
+        // This will be handled by ProgressTab internally with Appwrite
     };
 
     const handleAddVideoToPlaylist = (playlistId: string, videoId: string, title: string) => {
-        setPlaylists(prev => prev.map(playlist => {
-            if (playlist.id === playlistId) {
-                return {
-                    ...playlist,
-                    videos: [...playlist.videos, { id: videoId, title, progress: 0 }]
-                };
-            }
-            return playlist;
-        }));
-        console.log('Added video to playlist:', playlistId, videoId, title);
+        console.log('Adding video to playlist:', playlistId, videoId, title);
+        // This will be handled by ProgressTab internally with Appwrite
     };
 
     const handleDeletePlaylist = (playlistId: string) => {
-        setPlaylists(prev => prev.filter(playlist => playlist.id !== playlistId));
-        console.log('Deleted playlist:', playlistId);
+        console.log('Deleting playlist:', playlistId);
+        // This will be handled by ProgressTab internally with Appwrite
     };
 
     const handleDeleteVideo = (playlistId: string, videoId: string) => {
-        setPlaylists(prev => prev.map(playlist => {
-            if (playlist.id === playlistId) {
-                return {
-                    ...playlist,
-                    videos: playlist.videos.filter(video => video.id !== videoId)
-                };
-            }
-            return playlist;
-        }));
-        console.log('Deleted video from playlist:', playlistId, videoId);
+        console.log('Deleting video from playlist:', playlistId, videoId);
+        // This will be handled by ProgressTab internally with Appwrite
+    };
+
+    const handlePlaylistsUpdate = (updatedPlaylists: Playlist[]) => {
+        setPlaylists(updatedPlaylists);
     };
 
     return (
@@ -117,6 +100,7 @@ const Dashboard = ({loaderData}:Route.ComponentProps) => {
                     onAddVideoToPlaylist={handleAddVideoToPlaylist}
                     onDeletePlaylist={handleDeletePlaylist}
                     onDeleteVideo={handleDeleteVideo}
+                    onPlaylistsUpdate={handlePlaylistsUpdate}
                 />
             </div>
 

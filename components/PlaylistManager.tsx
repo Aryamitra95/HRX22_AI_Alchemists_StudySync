@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { getUser } from '../app/appwrite/auth';
+import { 
+  createPlaylist as createPlaylistDB, 
+  getUserPlaylists, 
+  getPlaylistWithVideos,
+  addVideoToPlaylist as addVideoToPlaylistDB,
+  deletePlaylist as deletePlaylistDB,
+  deleteVideoFromPlaylist as deleteVideoFromPlaylistDB,
+  updateVideoProgress,
+  type Playlist as PlaylistDB,
+  type Video as VideoDB,
+  type PlaylistWithVideos as PlaylistWithVideosDB
+} from '../app/appwrite/playlists';
 
 interface PlaylistItem {
   id: string;
@@ -36,6 +48,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get user data on component mount
   useEffect(() => {
@@ -50,79 +63,111 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
     fetchUser();
   }, []);
 
-  // Mock data for demonstration - replace with actual API calls
+  // Fetch playlists from database
   useEffect(() => {
-    if (user) {
-      // Mock playlists data
-      setPlaylists([
-        {
-          id: '1',
-          user_id: user.name || 'user1',
-          title: 'React Tutorials',
-          description: 'Learn React from scratch',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          user_id: user.name || 'user1',
-          title: 'JavaScript Fundamentals',
-          description: 'Core JavaScript concepts',
-          created_at: new Date().toISOString()
-        }
-      ]);
-    }
+    const fetchPlaylists = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const userPlaylists = await getUserPlaylists(user.name || 'user1');
+        
+        // Convert DB format to component format
+        const convertedPlaylists: Playlist[] = userPlaylists.map(playlist => ({
+          id: playlist.id,
+          user_id: playlist.userId,
+          title: playlist.name,
+          description: playlist.description || '',
+          created_at: playlist.createdAt
+        }));
+        
+        setPlaylists(convertedPlaylists);
+      } catch (error) {
+        console.error('Error fetching playlists:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlaylists();
   }, [user]);
 
   const fetchPlaylistItems = async (playlistId: string) => {
-    // Mock playlist items data
-    setPlaylistItems([
-      {
-        id: '1',
-        playlist_id: playlistId,
-        video_id: 'dQw4w9WgXcQ',
-        title: 'React Basics - Getting Started',
-        position: 1,
-        progress: 75
-      },
-      {
-        id: '2',
-        playlist_id: playlistId,
-        video_id: 'W6NZfCO5SIk',
-        title: 'JavaScript Tutorial for Beginners',
-        position: 2,
-        progress: 30
+    try {
+      const playlistWithVideos = await getPlaylistWithVideos(playlistId);
+      
+      if (playlistWithVideos) {
+        // Convert DB format to component format
+        const convertedItems: PlaylistItem[] = playlistWithVideos.videos.map((video, index) => ({
+          id: video.id,
+          playlist_id: video.playlistId,
+          video_id: video.videoId,
+          title: video.title,
+          position: index + 1,
+          progress: video.progress || 0
+        }));
+        
+        setPlaylistItems(convertedItems);
       }
-    ]);
+    } catch (error) {
+      console.error('Error fetching playlist items:', error);
+    }
   };
 
   const createPlaylist = async () => {
     if (!user || !newPlaylistTitle.trim()) return;
 
-    const newPlaylist: Playlist = {
-      id: Date.now().toString(),
-      user_id: user.name || 'user1',
-      title: newPlaylistTitle.trim(),
-      description: 'Custom playlist',
-      created_at: new Date().toISOString()
-    };
+    setIsLoading(true);
+    try {
+      const newPlaylist = await createPlaylistDB(
+        newPlaylistTitle.trim(), 
+        user.name || 'user1',
+        'Custom playlist'
+      );
 
-    setPlaylists(prev => [newPlaylist, ...prev]);
-    setNewPlaylistTitle('');
-    setShowCreateDialog(false);
-    
-    // Show success message
-    alert('Playlist created successfully!');
+      if (newPlaylist) {
+        const convertedPlaylist: Playlist = {
+          id: newPlaylist.id,
+          user_id: newPlaylist.userId,
+          title: newPlaylist.name,
+          description: newPlaylist.description || '',
+          created_at: newPlaylist.createdAt
+        };
+
+        setPlaylists(prev => [convertedPlaylist, ...prev]);
+        setNewPlaylistTitle('');
+        setShowCreateDialog(false);
+        
+        alert('Playlist created successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      alert('Failed to create playlist. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const deletePlaylist = async (playlistId: string) => {
-    setPlaylists(prev => prev.filter(p => p.id !== playlistId));
-    
-    if (selectedPlaylist === playlistId) {
-      setSelectedPlaylist(null);
-      setPlaylistItems([]);
+    try {
+      const success = await deletePlaylistDB(playlistId);
+      
+      if (success) {
+        setPlaylists(prev => prev.filter(p => p.id !== playlistId));
+        
+        if (selectedPlaylist === playlistId) {
+          setSelectedPlaylist(null);
+          setPlaylistItems([]);
+        }
+        
+        alert('Playlist deleted successfully!');
+      } else {
+        alert('Failed to delete playlist. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      alert('Failed to delete playlist. Please try again.');
     }
-    
-    alert('Playlist deleted successfully!');
   };
 
   const handlePlaylistSelect = (playlistId: string) => {
@@ -154,34 +199,35 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
 
     setIsImporting(true);
     
-    // Mock import process
-    setTimeout(() => {
-      const newItems: PlaylistItem[] = [
-        {
-          id: Date.now().toString(),
-          playlist_id: selectedPlaylist,
-          video_id: 'dQw4w9WgXcQ',
-          title: 'Imported Video 1',
-          position: playlistItems.length + 1,
-          progress: 0
-        },
-        {
-          id: (Date.now() + 1).toString(),
-          playlist_id: selectedPlaylist,
-          video_id: 'W6NZfCO5SIk',
-          title: 'Imported Video 2',
-          position: playlistItems.length + 2,
-          progress: 0
-        }
+    try {
+      // Mock import process - in real implementation, you'd use YouTube API
+      const mockVideos = [
+        { videoId: 'dQw4w9WgXcQ', title: 'Imported Video 1' },
+        { videoId: 'W6NZfCO5SIk', title: 'Imported Video 2' }
       ];
 
-      setPlaylistItems(prev => [...prev, ...newItems]);
+      for (const video of mockVideos) {
+        await addVideoToPlaylistDB(
+          selectedPlaylist,
+          video.videoId,
+          video.title,
+          user.name || 'user1'
+        );
+      }
+
+      // Refresh playlist items
+      await fetchPlaylistItems(selectedPlaylist);
+      
       setYoutubePlaylistUrl('');
       setShowAddPlaylistDialog(false);
-      setIsImporting(false);
       
       alert('Playlist imported successfully!');
-    }, 2000);
+    } catch (error) {
+      console.error('Error importing playlist:', error);
+      alert('Failed to import playlist. Please try again.');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const addVideoToPlaylist = async () => {
@@ -192,26 +238,51 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
 
     const videoId = extractVideoId(newVideoUrl.trim());
     
-    const newItem: PlaylistItem = {
-      id: Date.now().toString(),
-      playlist_id: selectedPlaylist,
-      video_id: videoId,
-      title: newVideoTitle.trim(),
-      position: playlistItems.length + 1,
-      progress: 0
-    };
+    try {
+      const newVideo = await addVideoToPlaylistDB(
+        selectedPlaylist,
+        videoId,
+        newVideoTitle.trim(),
+        user.name || 'user1'
+      );
 
-    setPlaylistItems(prev => [...prev, newItem]);
-    setNewVideoUrl('');
-    setNewVideoTitle('');
-    setShowAddVideoDialog(false);
-    
-    alert('Video added successfully!');
+      if (newVideo) {
+        const newItem: PlaylistItem = {
+          id: newVideo.id,
+          playlist_id: newVideo.playlistId,
+          video_id: newVideo.videoId,
+          title: newVideo.title,
+          position: playlistItems.length + 1,
+          progress: newVideo.progress || 0
+        };
+
+        setPlaylistItems(prev => [...prev, newItem]);
+        setNewVideoUrl('');
+        setNewVideoTitle('');
+        setShowAddVideoDialog(false);
+        
+        alert('Video added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding video:', error);
+      alert('Failed to add video. Please try again.');
+    }
   };
 
   const deleteVideoFromPlaylist = async (itemId: string) => {
-    setPlaylistItems(prev => prev.filter(item => item.id !== itemId));
-    alert('Video removed successfully!');
+    try {
+      const success = await deleteVideoFromPlaylistDB(itemId, selectedPlaylist!);
+      
+      if (success) {
+        setPlaylistItems(prev => prev.filter(item => item.id !== itemId));
+        alert('Video removed successfully!');
+      } else {
+        alert('Failed to remove video. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      alert('Failed to remove video. Please try again.');
+    }
   };
 
   return (

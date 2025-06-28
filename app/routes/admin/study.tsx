@@ -2,6 +2,8 @@ import React,{useState, useRef, useEffect} from 'react'
 import ReactMarkdown from 'react-markdown';
 import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer, PlaylistManager} from "../../../components";
 import AudioVisualizer from 'components/AudioVisualizer';
+import { getUser } from '../../appwrite/auth';
+import { getUserPlaylistsWithVideos } from '../../appwrite/playlists';
 
 interface YouTubePlayerHandle {
     getCurrentTime: () => number;
@@ -12,8 +14,21 @@ interface QuizItem {
     answer: string;
 }
 
+interface Video {
+    id: string;
+    title: string;
+    progress?: number;
+}
+
+interface Playlist {
+    id: string;
+    name: string;
+    videos: Video[];
+}
+
 const Study: React.FC = () => {
-    const user = { name: 'Aryamitra'}
+    const [user, setUser] = useState<any>(null);
+    const [playlists, setPlaylists] = useState<Playlist[]>([]);
     const [inputUrl, setInputUrl] = useState("");
     const playerRef = useRef<YouTubePlayerHandle>(null);
     const [currentTimestamp, setCurrentTimestamp] = useState(0);
@@ -26,6 +41,47 @@ const Study: React.FC = () => {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const [distractionScore, setDistractionScore] = useState(0);
     const [showPlaylistManager, setShowPlaylistManager] = useState(false);
+
+    // Get user data on component mount
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const userData = await getUser();
+                setUser(userData);
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    // Fetch playlists when user is available
+    useEffect(() => {
+        const fetchPlaylists = async () => {
+            if (!user) return;
+            
+            try {
+                const userPlaylistsWithVideos = await getUserPlaylistsWithVideos(user.name || 'user1');
+                
+                // Convert DB format to component format
+                const convertedPlaylists: Playlist[] = userPlaylistsWithVideos.map(playlist => ({
+                    id: playlist.id,
+                    name: playlist.name,
+                    videos: playlist.videos.map(video => ({
+                        id: video.id,
+                        title: video.title,
+                        progress: video.progress
+                    }))
+                }));
+                
+                setPlaylists(convertedPlaylists);
+            } catch (error) {
+                console.error('Error fetching playlists:', error);
+            }
+        };
+
+        fetchPlaylists();
+    }, [user]);
 
     useEffect(() => {
         console.log('Distraction score updated:', distractionScore);
@@ -114,6 +170,10 @@ const Study: React.FC = () => {
         setUrl(youtubeUrl);
         setShowPlaylistManager(false);
         alert(`Selected: ${title}`);
+    };
+
+    const handlePlaylistsUpdate = (updatedPlaylists: Playlist[]) => {
+        setPlaylists(updatedPlaylists);
     };
 
     const videoId = getVideoId(url);
