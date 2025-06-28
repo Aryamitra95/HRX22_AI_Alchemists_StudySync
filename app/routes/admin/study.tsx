@@ -1,6 +1,7 @@
-import React,{useState, useRef} from 'react'
+import React,{useState, useRef, useEffect} from 'react'
 import ReactMarkdown from 'react-markdown';
 import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer} from "../../../components";
+import AudioVisualizer from 'components/AudioVisualizer';
 
 interface YouTubePlayerHandle {
     getCurrentTime: () => number;
@@ -23,6 +24,34 @@ const Study: React.FC = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
+    const [distractionScore, setDistractionScore] = useState(0);
+
+    useEffect(() => {
+        console.log('Distraction score updated:', distractionScore);
+    }, [distractionScore]);
+
+    useEffect(() => {
+        const source = new EventSource('http://localhost:5000/distracted_feed');
+        
+        source.onmessage = (e) => {
+            console.log('Received distraction data:', e.data);
+            const value = parseFloat(e.data);
+            setDistractionScore(value);
+        };
+        
+        source.onerror = (e) => {
+            console.error('EventSource error:', e);
+        };
+        
+        source.onopen = () => {
+            console.log('EventSource connected to distraction feed');
+        };
+        
+        return () => {
+            console.log('Closing EventSource connection');
+            source.close();
+        };
+    }, []);
 
     const getVideoId = (url: string): string => {
         try {
@@ -105,6 +134,17 @@ const Study: React.FC = () => {
                         {/* Player Box with faded border */}
                         {url && (
                             <div className="bg-white rounded-2xl border border-blue-200 shadow-[0_0_20px_rgba(0,150,255,0.15)] p-4 transition-all">
+                                <div className="mb-4">
+                                    <label htmlFor="distraction-bar" className="block text-sm font-medium text-gray-700">
+                                        Distraction Level: {distractionScore.toFixed(1)}%
+                                    </label>
+                                    <progress
+                                        id="distraction-bar"
+                                        className="w-full h-2 bg-gray-200 rounded"
+                                        max={100}
+                                        value={distractionScore}
+                                    />
+                                </div>
                                 <div className="aspect-video w-full">
                                     <YoutubePlayer
                                         ref={playerRef}
@@ -144,6 +184,9 @@ const Study: React.FC = () => {
                             {/* Webcam Container */}
                             <div className="bg-[#f0f9ff] rounded-xl border border-blue-300/40 p-4 w-full">
                                 <WebcamFeed showStreamImage={true} />
+                            </div>
+                            <div className="bg-[#f0f9ff] rounded-xl border border-blue-300/40 p-4 w-full">
+                                <AudioVisualizer />
                             </div>
                         </div>
                     )}
