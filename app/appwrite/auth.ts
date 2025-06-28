@@ -124,7 +124,7 @@ export const getUser = async () => {
         return {
             name: user.name,
             email: user.email,
-            imageUrl: user.imageUrl ?? '/assets/images/david.webp'
+            imageUrl: (user as any).imageUrl ?? '/assets/images/david.webp'
         };
     } catch (error) {
         console.error("Error fetching user:", error);

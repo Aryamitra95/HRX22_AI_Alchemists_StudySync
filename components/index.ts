@@ -8,3 +8,5 @@ export {default as YoutubePlayer} from './YouTubePlayer';
 export {default as WebcamFeed} from './WebCam';
 export {default as ScoreGraph} from './ScoreGraph';
 export {default as Summarizer} from './Summarizer';
+export {default as ErrorBoundary} from './ErrorBoundary';
+export {default as AuthGuard} from './AuthGuard';

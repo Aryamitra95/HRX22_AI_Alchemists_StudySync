@@ -1,8 +1,8 @@
-import React from 'react'
+import React from 'react';
+import MiniGames from '../../../components/MiniGames';
 
-const MiniGames = () => {
-    return (
-        <div>MiniGames</div>
-    )
-}
-export default MiniGames
+const MiniGamesPage = () => {
+    return <MiniGames />;
+};
+
+export default MiniGamesPage;

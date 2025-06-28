@@ -5,7 +5,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
-  ssr:{
-    noExternal: [/@syncfusion/]
+  ssr: {
+    // Only apply noExternal for production builds to prevent HMR issues in development
+    noExternal: process.env.NODE_ENV === 'production' ? [/@syncfusion/] : []
   }
 });

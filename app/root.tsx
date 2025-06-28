@@ -6,10 +6,10 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
-
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -23,12 +23,24 @@ export const links: Route.LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
-import {registerLicense} from "@syncfusion/ej2-base";
-registerLicense(import.meta.env.VITE_SYNC_FUSION_LICENSE_KEY);
 
 export default function Layout() {
+  // Move Syncfusion license registration to useEffect to prevent SSR issues
+  useEffect(() => {
+    const registerSyncfusionLicense = async () => {
+      try {
+        const { registerLicense } = await import("@syncfusion/ej2-base");
+        registerLicense(import.meta.env.VITE_SYNC_FUSION_LICENSE_KEY);
+      } catch (error) {
+        console.warn("Failed to register Syncfusion license:", error);
+      }
+    };
+    
+    registerSyncfusionLicense();
+  }, []);
+
   return (
-      <html lang="en">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -36,15 +48,13 @@ export default function Layout() {
         <Links />
       </head>
       <body>
-      <Outlet />
-      <ScrollRestoration />
-      <Scripts />
+        <Outlet />
+        <ScrollRestoration />
+        <Scripts />
       </body>
-      </html>
+    </html>
   );
 }
-
-
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = "Oops!";
