@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUser } from '../app/appwrite/auth';
+import { getCurrentUser } from '../app/appwrite/auth';
 import { 
   createPlaylist as createPlaylistDB, 
   getUserPlaylists, 
@@ -35,12 +35,12 @@ interface PlaylistManagerProps {
   onClose?: () => void;
 }
 
+type ModalType = 'create' | 'addVideo' | 'importPlaylist' | null;
+
 export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect, onClose }) => {
-  const [user, setUser] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showAddVideoDialog, setShowAddVideoDialog] = useState(false);
-  const [showAddPlaylistDialog, setShowAddPlaylistDialog] = useState(false);
+  const [modalType, setModalType] = useState<ModalType>(null);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
@@ -54,10 +54,11 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const userData = await getUser();
-        setUser(userData);
+        const userId = await getCurrentUser();
+        setCurrentUserId(userId);
       } catch (error) {
         console.error('Error fetching user:', error);
+        alert(`Failed to fetch user: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     };
     fetchUser();
@@ -66,11 +67,11 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
   // Fetch playlists from database
   useEffect(() => {
     const fetchPlaylists = async () => {
-      if (!user) return;
+      if (!currentUserId) return;
       
       setIsLoading(true);
       try {
-        const userPlaylists = await getUserPlaylists(user.name || 'user1');
+        const userPlaylists = await getUserPlaylists();
         
         // Convert DB format to component format
         const convertedPlaylists: Playlist[] = userPlaylists.map(playlist => ({
@@ -84,13 +85,14 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
         setPlaylists(convertedPlaylists);
       } catch (error) {
         console.error('Error fetching playlists:', error);
+        alert(`Failed to fetch playlists: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchPlaylists();
-  }, [user]);
+  }, [currentUserId]);
 
   const fetchPlaylistItems = async (playlistId: string) => {
     try {
@@ -111,17 +113,17 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
       }
     } catch (error) {
       console.error('Error fetching playlist items:', error);
+      alert(`Failed to fetch playlist items: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const createPlaylist = async () => {
-    if (!user || !newPlaylistTitle.trim()) return;
+    if (!currentUserId || !newPlaylistTitle.trim()) return;
 
     setIsLoading(true);
     try {
       const newPlaylist = await createPlaylistDB(
         newPlaylistTitle.trim(), 
-        user.name || 'user1',
         'Custom playlist'
       );
 
@@ -136,13 +138,13 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
 
         setPlaylists(prev => [convertedPlaylist, ...prev]);
         setNewPlaylistTitle('');
-        setShowCreateDialog(false);
+        setModalType(null);
         
         alert('Playlist created successfully!');
       }
     } catch (error) {
       console.error('Error creating playlist:', error);
-      alert('Failed to create playlist. Please try again.');
+      alert(`Failed to create playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +168,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
       }
     } catch (error) {
       console.error('Error deleting playlist:', error);
-      alert('Failed to delete playlist. Please try again.');
+      alert(`Failed to delete playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -210,8 +212,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
         await addVideoToPlaylistDB(
           selectedPlaylist,
           video.videoId,
-          video.title,
-          user.name || 'user1'
+          video.title
         );
       }
 
@@ -219,12 +220,12 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
       await fetchPlaylistItems(selectedPlaylist);
       
       setYoutubePlaylistUrl('');
-      setShowAddPlaylistDialog(false);
+      setModalType(null);
       
       alert('Playlist imported successfully!');
     } catch (error) {
       console.error('Error importing playlist:', error);
-      alert('Failed to import playlist. Please try again.');
+      alert(`Failed to import playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsImporting(false);
     }
@@ -238,12 +239,17 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
 
     const videoId = extractVideoId(newVideoUrl.trim());
     
+    // Validate YouTube video ID
+    if (!videoId || videoId.length < 10) {
+      alert('Invalid YouTube video ID. Please check the URL.');
+      return;
+    }
+    
     try {
       const newVideo = await addVideoToPlaylistDB(
         selectedPlaylist,
         videoId,
-        newVideoTitle.trim(),
-        user.name || 'user1'
+        newVideoTitle.trim()
       );
 
       if (newVideo) {
@@ -259,13 +265,13 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
         setPlaylistItems(prev => [...prev, newItem]);
         setNewVideoUrl('');
         setNewVideoTitle('');
-        setShowAddVideoDialog(false);
+        setModalType(null);
         
         alert('Video added successfully!');
       }
     } catch (error) {
       console.error('Error adding video:', error);
-      alert('Failed to add video. Please try again.');
+      alert(`Failed to add video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -281,8 +287,16 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
       }
     } catch (error) {
       console.error('Error deleting video:', error);
-      alert('Failed to remove video. Please try again.');
+      alert(`Failed to remove video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+    setNewPlaylistTitle('');
+    setNewVideoUrl('');
+    setNewVideoTitle('');
+    setYoutubePlaylistUrl('');
   };
 
   return (
@@ -305,7 +319,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
                 </button>
               )}
               <button
-                onClick={() => setShowCreateDialog(true)}
+                onClick={() => setModalType('create')}
                 className="bg-[#0056D3] text-white px-3 py-1 rounded-md text-sm hover:bg-[#0047B3] flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +352,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={e => { e.stopPropagation(); setShowAddPlaylistDialog(true); }}
+                        onClick={e => { e.stopPropagation(); setModalType('importPlaylist'); }}
                         className="p-2 text-gray-600 hover:text-[#0056D3] hover:bg-gray-100 rounded-md"
                         title="Import YouTube Playlist"
                       >
@@ -373,7 +387,7 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Playlist Videos</h3>
               <button 
-                onClick={() => setShowAddVideoDialog(true)}
+                onClick={() => setModalType('addVideo')}
                 className="bg-[#0056D3] text-white px-3 py-1 rounded-md text-sm hover:bg-[#0047B3] flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,106 +446,105 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({ onVideoSelect,
         </div>
       )}
 
-      {/* Create Playlist Dialog */}
-      {showCreateDialog && (
+      {/* Unified Modal */}
+      {modalType && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Create New Playlist</h3>
-            <input
-              type="text"
-              placeholder="Playlist name..."
-              value={newPlaylistTitle}
-              onChange={(e) => setNewPlaylistTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && createPlaylist()}
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowCreateDialog(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createPlaylist}
-                className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3]"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            {modalType === 'create' && (
+              <>
+                <h3 className="text-lg font-semibold mb-4">Create New Playlist</h3>
+                <input
+                  type="text"
+                  placeholder="Playlist name..."
+                  value={newPlaylistTitle}
+                  onChange={(e) => setNewPlaylistTitle(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                  onKeyPress={(e) => e.key === 'Enter' && createPlaylist()}
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createPlaylist}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
+                  >
+                    {isLoading ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </>
+            )}
 
-      {/* Add Video Dialog */}
-      {showAddVideoDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Add Video to Playlist</h3>
-            <input
-              type="text"
-              placeholder="YouTube URL..."
-              value={newVideoUrl}
-              onChange={(e) => setNewVideoUrl(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-            />
-            <input
-              type="text"
-              placeholder="Video title..."
-              value={newVideoTitle}
-              onChange={(e) => setNewVideoTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowAddVideoDialog(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addVideoToPlaylist}
-                className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3]"
-              >
-                Add Video
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            {modalType === 'addVideo' && (
+              <>
+                <h3 className="text-lg font-semibold mb-4">Add Video to Playlist</h3>
+                <input
+                  type="text"
+                  placeholder="YouTube URL..."
+                  value={newVideoUrl}
+                  onChange={(e) => setNewVideoUrl(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                />
+                <input
+                  type="text"
+                  placeholder="Video title..."
+                  value={newVideoTitle}
+                  onChange={(e) => setNewVideoTitle(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addVideoToPlaylist}
+                    className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3]"
+                  >
+                    Add Video
+                  </button>
+                </div>
+              </>
+            )}
 
-      {/* Import YouTube Playlist Dialog */}
-      {showAddPlaylistDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Import YouTube Playlist</h3>
-            <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-4">
-              Please select one of your playlists as the destination before importing a YouTube playlist.
-            </div>
-            <input
-              type="text"
-              placeholder="YouTube playlist URL..."
-              value={youtubePlaylistUrl}
-              onChange={e => setYoutubePlaylistUrl(e.target.value)}
-              disabled={isImporting}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowAddPlaylistDialog(false)}
-                disabled={isImporting}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={importYouTubePlaylist}
-                disabled={isImporting || !selectedPlaylist}
-                className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
-              >
-                {isImporting ? 'Importing...' : 'Import Playlist'}
-              </button>
-            </div>
+            {modalType === 'importPlaylist' && (
+              <>
+                <h3 className="text-lg font-semibold mb-4">Import YouTube Playlist</h3>
+                <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-4">
+                  Please select one of your playlists as the destination before importing a YouTube playlist.
+                </div>
+                <input
+                  type="text"
+                  placeholder="YouTube playlist URL..."
+                  value={youtubePlaylistUrl}
+                  onChange={e => setYoutubePlaylistUrl(e.target.value)}
+                  disabled={isImporting}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={closeModal}
+                    disabled={isImporting}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={importYouTubePlaylist}
+                    disabled={isImporting || !selectedPlaylist}
+                    className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
+                  >
+                    {isImporting ? 'Importing...' : 'Import Playlist'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

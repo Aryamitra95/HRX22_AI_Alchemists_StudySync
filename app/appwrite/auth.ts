@@ -131,3 +131,16 @@ export const getUser = async () => {
         return null;
     }
 };
+
+/**
+ * Get the current authenticated user's ID
+ */
+export const getCurrentUser = async (): Promise<string | null> => {
+    try {
+        const user = await account.get();
+        return user?.$id || null;
+    } catch (error) {
+        console.error("Error fetching current user ID:", error);
+        return null;
+    }
+};

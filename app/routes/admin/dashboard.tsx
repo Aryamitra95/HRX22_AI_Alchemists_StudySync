@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {Header, Lifetime, Month, ProgressTab} from "../../../components";
 import {getUser} from "~/appwrite/auth";
+import {getUserPlaylistsWithVideos} from '../../appwrite/playlists';
 import type {Route} from './+types/dashboard';
 
 interface User {
@@ -25,58 +26,34 @@ export const clientLoader = async ()=> await getUser();
 const Dashboard = ({loaderData}:Route.ComponentProps) => {
     const user = (loaderData ?? null) as User | null;
     
-    const [playlists, setPlaylists] = useState<Playlist[]>([
-        {
-            id: '1',
-            name: 'React Fundamentals',
-            videos: [
-                { id: 'video1', title: 'Introduction to React', progress: 75 },
-                { id: 'video2', title: 'Components and Props', progress: 50 },
-                { id: 'video3', title: 'State and Lifecycle', progress: 0 }
-            ]
-        },
-        {
-            id: '2',
-            name: 'Advanced JavaScript',
-            videos: [
-                { id: 'video4', title: 'ES6 Features', progress: 100 },
-                { id: 'video5', title: 'Async/Await', progress: 25 }
-            ]
+    const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+    // Fetch playlists from Appwrite
+    const fetchPlaylists = useCallback(async () => {
+        try {
+            const userPlaylistsWithVideos = await getUserPlaylistsWithVideos();
+            const convertedPlaylists: Playlist[] = userPlaylistsWithVideos.map(playlist => ({
+                id: playlist.id,
+                name: playlist.name,
+                videos: playlist.videos.map(video => ({
+                    id: video.id,
+                    title: video.title,
+                    progress: video.progress
+                }))
+            }));
+            setPlaylists(convertedPlaylists);
+        } catch (error) {
+            console.error('Error fetching playlists:', error);
         }
-    ]);
+    }, []);
 
-    const handlePlaylistSelect = (playlistId: string) => {
-        console.log('Selected playlist:', playlistId);
-        // Handle playlist selection - could open in video player
-    };
+    useEffect(() => {
+        fetchPlaylists();
+    }, [fetchPlaylists]);
 
-    const handleVideoSelect = (videoId: string, title: string) => {
-        console.log('Selected video:', videoId, title);
-        // Handle video selection - could open in video player
-    };
-
-    const handleAddPlaylist = (name: string) => {
-        console.log('Adding playlist:', name);
-        // This will be handled by ProgressTab internally with Appwrite
-    };
-
-    const handleAddVideoToPlaylist = (playlistId: string, videoId: string, title: string) => {
-        console.log('Adding video to playlist:', playlistId, videoId, title);
-        // This will be handled by ProgressTab internally with Appwrite
-    };
-
-    const handleDeletePlaylist = (playlistId: string) => {
-        console.log('Deleting playlist:', playlistId);
-        // This will be handled by ProgressTab internally with Appwrite
-    };
-
-    const handleDeleteVideo = (playlistId: string, videoId: string) => {
-        console.log('Deleting video from playlist:', playlistId, videoId);
-        // This will be handled by ProgressTab internally with Appwrite
-    };
-
-    const handlePlaylistsUpdate = (updatedPlaylists: Playlist[]) => {
-        setPlaylists(updatedPlaylists);
+    // This will be called by ProgressTab after any mutation
+    const handlePlaylistsUpdate = () => {
+        fetchPlaylists();
     };
 
     return (
@@ -94,12 +71,6 @@ const Dashboard = ({loaderData}:Route.ComponentProps) => {
             <div className="mt-6">
                 <ProgressTab 
                     playlists={playlists}
-                    onPlaylistSelect={handlePlaylistSelect}
-                    onVideoSelect={handleVideoSelect}
-                    onAddPlaylist={handleAddPlaylist}
-                    onAddVideoToPlaylist={handleAddVideoToPlaylist}
-                    onDeletePlaylist={handleDeletePlaylist}
-                    onDeleteVideo={handleDeleteVideo}
                     onPlaylistsUpdate={handlePlaylistsUpdate}
                 />
             </div>

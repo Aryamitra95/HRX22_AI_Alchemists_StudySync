@@ -2,6 +2,7 @@
 
 import { database, appwriteConfig } from "./client";
 import { ID, Query } from "appwrite";
+import { getCurrentUser } from "./auth";
 
 // Collection IDs - you'll need to create these in your Appwrite console
 const PLAYLISTS_COLLECTION_ID = import.meta.env.VITE_APPWRITE_PLAYLISTS_COLLECTION_ID || 'playlists';
@@ -35,15 +36,20 @@ export interface PlaylistWithVideos extends Playlist {
 /**
  * Create a new playlist
  */
-export const createPlaylist = async (name: string, userId: string, description?: string): Promise<Playlist | null> => {
+export const createPlaylist = async (name: string, description?: string): Promise<Playlist | null> => {
   try {
+    const currentUserId = await getCurrentUser();
+    if (!currentUserId) {
+      throw new Error("User not authenticated");
+    }
+
     const playlist = await database.createDocument(
       appwriteConfig.databaseId,
       PLAYLISTS_COLLECTION_ID,
       ID.unique(),
       {
         name,
-        userId,
+        userId: currentUserId,
         description: description || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -62,6 +68,7 @@ export const createPlaylist = async (name: string, userId: string, description?:
     };
   } catch (error) {
     console.error("Error creating playlist:", error);
+    alert(`Failed to create playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
 };
@@ -69,12 +76,17 @@ export const createPlaylist = async (name: string, userId: string, description?:
 /**
  * Get all playlists for a user
  */
-export const getUserPlaylists = async (userId: string): Promise<Playlist[]> => {
+export const getUserPlaylists = async (): Promise<Playlist[]> => {
   try {
+    const currentUserId = await getCurrentUser();
+    if (!currentUserId) {
+      throw new Error("User not authenticated");
+    }
+
     const response = await database.listDocuments(
       appwriteConfig.databaseId,
       PLAYLISTS_COLLECTION_ID,
-      [Query.equal("userId", userId), Query.orderDesc("updatedAt")]
+      [Query.equal("userId", currentUserId), Query.orderDesc("updatedAt")]
     );
 
     return response.documents.map(doc => ({
@@ -88,6 +100,7 @@ export const getUserPlaylists = async (userId: string): Promise<Playlist[]> => {
     }));
   } catch (error) {
     console.error("Error fetching user playlists:", error);
+    alert(`Failed to fetch playlists: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return [];
   }
 };
@@ -134,6 +147,7 @@ export const getPlaylistWithVideos = async (playlistId: string): Promise<Playlis
     };
   } catch (error) {
     console.error("Error fetching playlist with videos:", error);
+    alert(`Failed to fetch playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
 };
@@ -144,10 +158,19 @@ export const getPlaylistWithVideos = async (playlistId: string): Promise<Playlis
 export const addVideoToPlaylist = async (
   playlistId: string, 
   videoId: string, 
-  title: string, 
-  userId: string
+  title: string
 ): Promise<Video | null> => {
   try {
+    const currentUserId = await getCurrentUser();
+    if (!currentUserId) {
+      throw new Error("User not authenticated");
+    }
+
+    // Validate YouTube video ID
+    if (!videoId || videoId.length < 10) {
+      throw new Error("Invalid YouTube video ID");
+    }
+
     // Create video document
     const video = await database.createDocument(
       appwriteConfig.databaseId,
@@ -157,7 +180,7 @@ export const addVideoToPlaylist = async (
         videoId,
         title,
         playlistId,
-        userId,
+        userId: currentUserId,
         progress: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -193,6 +216,7 @@ export const addVideoToPlaylist = async (
     };
   } catch (error) {
     console.error("Error adding video to playlist:", error);
+    alert(`Failed to add video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
 };
@@ -214,6 +238,7 @@ export const updateVideoProgress = async (videoId: string, progress: number): Pr
     return true;
   } catch (error) {
     console.error("Error updating video progress:", error);
+    alert(`Failed to update progress: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -249,6 +274,7 @@ export const deletePlaylist = async (playlistId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting playlist:", error);
+    alert(`Failed to delete playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -285,6 +311,7 @@ export const deleteVideoFromPlaylist = async (videoId: string, playlistId: strin
     return true;
   } catch (error) {
     console.error("Error deleting video from playlist:", error);
+    alert(`Failed to delete video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -309,6 +336,7 @@ export const updatePlaylist = async (
     return true;
   } catch (error) {
     console.error("Error updating playlist:", error);
+    alert(`Failed to update playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -316,16 +344,21 @@ export const updatePlaylist = async (
 /**
  * Get all playlists with videos for a user (optimized for dashboard)
  */
-export const getUserPlaylistsWithVideos = async (userId: string): Promise<PlaylistWithVideos[]> => {
+export const getUserPlaylistsWithVideos = async (): Promise<PlaylistWithVideos[]> => {
   try {
+    const currentUserId = await getCurrentUser();
+    if (!currentUserId) {
+      throw new Error("User not authenticated");
+    }
+
     // Get all playlists
-    const playlists = await getUserPlaylists(userId);
+    const playlists = await getUserPlaylists();
     
     // Get all videos for this user
     const videosResponse = await database.listDocuments(
       appwriteConfig.databaseId,
       VIDEOS_COLLECTION_ID,
-      [Query.equal("userId", userId)]
+      [Query.equal("userId", currentUserId)]
     );
 
     const videos = videosResponse.documents.map(doc => ({
@@ -348,6 +381,7 @@ export const getUserPlaylistsWithVideos = async (userId: string): Promise<Playli
     return playlistsWithVideos;
   } catch (error) {
     console.error("Error fetching user playlists with videos:", error);
+    alert(`Failed to fetch playlists with videos: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return [];
   }
 }; 

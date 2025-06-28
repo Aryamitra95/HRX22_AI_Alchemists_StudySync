@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getUser } from '../app/appwrite/auth';
+import React, { useState } from 'react';
+import { getCurrentUser } from '../app/appwrite/auth';
 import { 
   createPlaylist as createPlaylistDB, 
-  getUserPlaylistsWithVideos,
   addVideoToPlaylist as addVideoToPlaylistDB,
   deletePlaylist as deletePlaylistDB,
   deleteVideoFromPlaylist as deleteVideoFromPlaylistDB,
@@ -30,8 +29,10 @@ interface ProgressTabProps {
   onAddVideoToPlaylist?: (playlistId: string, videoId: string, title: string) => void;
   onDeletePlaylist?: (playlistId: string) => void;
   onDeleteVideo?: (playlistId: string, videoId: string) => void;
-  onPlaylistsUpdate?: (playlists: Playlist[]) => void;
+  onPlaylistsUpdate?: () => void;
 }
+
+type ModalType = 'createPlaylist' | 'addVideo' | null;
 
 export const ProgressTab: React.FC<ProgressTabProps> = ({ 
   playlists, 
@@ -43,10 +44,8 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
   onDeleteVideo,
   onPlaylistsUpdate
 }) => {
-  const [user, setUser] = useState<any>(null);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(playlists[0]?.id || null);
-  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [modalType, setModalType] = useState<ModalType>(null);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
@@ -54,138 +53,60 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
 
   const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId);
 
-  // Get user data on component mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await getUser();
-        setUser(userData);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  // Fetch playlists from database when user is available
-  useEffect(() => {
-    const fetchPlaylists = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        const userPlaylistsWithVideos = await getUserPlaylistsWithVideos(user.name || 'user1');
-        
-        // Convert DB format to component format
-        const convertedPlaylists: Playlist[] = userPlaylistsWithVideos.map(playlist => ({
-          id: playlist.id,
-          name: playlist.name,
-          videos: playlist.videos.map(video => ({
-            id: video.id,
-            title: video.title,
-            progress: video.progress
-          }))
-        }));
-        
-        // Update parent component with new playlists
-        if (onPlaylistsUpdate) {
-          onPlaylistsUpdate(convertedPlaylists);
-        }
-      } catch (error) {
-        console.error('Error fetching playlists:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPlaylists();
-  }, [user]);
-
   const handleCreatePlaylist = async () => {
-    if (!user || !newPlaylistName.trim()) return;
-
+    if (!newPlaylistName.trim()) return;
     setIsLoading(true);
     try {
       const newPlaylist = await createPlaylistDB(
         newPlaylistName.trim(), 
-        user.name || 'user1',
         'Custom playlist'
       );
-
       if (newPlaylist) {
-        const convertedPlaylist: Playlist = {
-          id: newPlaylist.id,
-          name: newPlaylist.name,
-          videos: []
-        };
-
-        // Update parent component
-        if (onPlaylistsUpdate) {
-          onPlaylistsUpdate([convertedPlaylist, ...playlists]);
-        }
-        
         setNewPlaylistName('');
-        setShowCreatePlaylist(false);
-        
-        // Call parent handler if provided
+        setModalType(null);
         if (onAddPlaylist) {
           onAddPlaylist(newPlaylistName.trim());
+        }
+        if (onPlaylistsUpdate) {
+          onPlaylistsUpdate();
         }
       }
     } catch (error) {
       console.error('Error creating playlist:', error);
+      alert(`Failed to create playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddVideo = async () => {
-    if (!user || !selectedPlaylistId || !newVideoUrl.trim() || !newVideoTitle.trim()) return;
-
+    if (!selectedPlaylistId || !newVideoUrl.trim() || !newVideoTitle.trim()) return;
     setIsLoading(true);
     try {
-      // Extract video ID from YouTube URL
       const videoId = extractVideoId(newVideoUrl.trim());
-      
+      if (!videoId || videoId.length < 10) {
+        alert('Invalid YouTube video ID. Please check the URL.');
+        return;
+      }
       const newVideo = await addVideoToPlaylistDB(
         selectedPlaylistId,
         videoId,
-        newVideoTitle.trim(),
-        user.name || 'user1'
+        newVideoTitle.trim()
       );
-
       if (newVideo) {
-        // Update the selected playlist with new video
-        const updatedPlaylists = playlists.map(playlist => {
-          if (playlist.id === selectedPlaylistId) {
-            return {
-              ...playlist,
-              videos: [...playlist.videos, {
-                id: newVideo.id,
-                title: newVideo.title,
-                progress: newVideo.progress || 0
-              }]
-            };
-          }
-          return playlist;
-        });
-
-        // Update parent component
-        if (onPlaylistsUpdate) {
-          onPlaylistsUpdate(updatedPlaylists);
-        }
-
         setNewVideoUrl('');
         setNewVideoTitle('');
-        setShowAddVideo(false);
-        
-        // Call parent handler if provided
+        setModalType(null);
         if (onAddVideoToPlaylist) {
           onAddVideoToPlaylist(selectedPlaylistId, videoId, newVideoTitle.trim());
+        }
+        if (onPlaylistsUpdate) {
+          onPlaylistsUpdate();
         }
       }
     } catch (error) {
       console.error('Error adding video:', error);
+      alert(`Failed to add video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -194,62 +115,50 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
   const handleDeletePlaylist = async (playlistId: string) => {
     try {
       const success = await deletePlaylistDB(playlistId);
-      
       if (success) {
-        const updatedPlaylists = playlists.filter(p => p.id !== playlistId);
-        
-        // Update parent component
-        if (onPlaylistsUpdate) {
-          onPlaylistsUpdate(updatedPlaylists);
-        }
-        
-        if (selectedPlaylistId === playlistId) {
-          setSelectedPlaylistId(updatedPlaylists[0]?.id || null);
-        }
-        
-        // Call parent handler if provided
         if (onDeletePlaylist) {
           onDeletePlaylist(playlistId);
+        }
+        if (onPlaylistsUpdate) {
+          onPlaylistsUpdate();
+        }
+        if (selectedPlaylistId === playlistId) {
+          setSelectedPlaylistId(playlists[0]?.id || null);
         }
       }
     } catch (error) {
       console.error('Error deleting playlist:', error);
+      alert(`Failed to delete playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleDeleteVideo = async (playlistId: string, videoId: string) => {
     try {
       const success = await deleteVideoFromPlaylistDB(videoId, playlistId);
-      
       if (success) {
-        const updatedPlaylists = playlists.map(playlist => {
-          if (playlist.id === playlistId) {
-            return {
-              ...playlist,
-              videos: playlist.videos.filter(video => video.id !== videoId)
-            };
-          }
-          return playlist;
-        });
-
-        // Update parent component
-        if (onPlaylistsUpdate) {
-          onPlaylistsUpdate(updatedPlaylists);
-        }
-        
-        // Call parent handler if provided
         if (onDeleteVideo) {
           onDeleteVideo(playlistId, videoId);
+        }
+        if (onPlaylistsUpdate) {
+          onPlaylistsUpdate();
         }
       }
     } catch (error) {
       console.error('Error deleting video:', error);
+      alert(`Failed to delete video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const extractVideoId = (url: string) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
     return match ? match[1] : url;
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+    setNewPlaylistName('');
+    setNewVideoUrl('');
+    setNewVideoTitle('');
   };
 
   return (
@@ -259,7 +168,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900">Your Playlists</h3>
             <button
-              onClick={() => setShowCreatePlaylist(true)}
+              onClick={() => setModalType('createPlaylist')}
               disabled={isLoading}
               className="bg-[#0056D3] text-white px-3 py-1 rounded-md text-sm hover:bg-[#0047B3] flex items-center gap-1 disabled:opacity-50"
             >
@@ -315,7 +224,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold text-gray-900">Videos in "{selectedPlaylist.name}"</h4>
                     <button
-                      onClick={() => setShowAddVideo(true)}
+                      onClick={() => setModalType('addVideo')}
                       className="text-[#0056D3] text-sm hover:text-[#0047B3] flex items-center gap-1"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,72 +269,73 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
         </div>
       </div>
 
-      {/* Create Playlist Dialog */}
-      {showCreatePlaylist && (
+      {/* Unified Modal */}
+      {modalType && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Create New Playlist</h3>
-            <input
-              type="text"
-              placeholder="Playlist name..."
-              value={newPlaylistName}
-              onChange={(e) => setNewPlaylistName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && handleCreatePlaylist()}
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowCreatePlaylist(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreatePlaylist}
-                disabled={isLoading}
-                className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
-              >
-                {isLoading ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            {modalType === 'createPlaylist' && (
+              <>
+                <h3 className="text-lg font-semibold mb-4">Create New Playlist</h3>
+                <input
+                  type="text"
+                  placeholder="Playlist name..."
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                  onKeyPress={(e) => e.key === 'Enter' && handleCreatePlaylist()}
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreatePlaylist}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
+                  >
+                    {isLoading ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </>
+            )}
 
-      {/* Add Video Dialog */}
-      {showAddVideo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Add Video to Playlist</h3>
-            <input
-              type="text"
-              placeholder="YouTube URL..."
-              value={newVideoUrl}
-              onChange={(e) => setNewVideoUrl(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-            />
-            <input
-              type="text"
-              placeholder="Video title..."
-              value={newVideoTitle}
-              onChange={(e) => setNewVideoTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowAddVideo(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddVideo}
-                disabled={isLoading}
-                className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
-              >
-                {isLoading ? 'Adding...' : 'Add Video'}
-              </button>
-            </div>
+            {modalType === 'addVideo' && (
+              <>
+                <h3 className="text-lg font-semibold mb-4">Add Video to Playlist</h3>
+                <input
+                  type="text"
+                  placeholder="YouTube URL..."
+                  value={newVideoUrl}
+                  onChange={(e) => setNewVideoUrl(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                />
+                <input
+                  type="text"
+                  placeholder="Video title..."
+                  value={newVideoTitle}
+                  onChange={(e) => setNewVideoTitle(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddVideo}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-[#0056D3] text-white rounded-md hover:bg-[#0047B3] disabled:opacity-50"
+                  >
+                    {isLoading ? 'Adding...' : 'Add Video'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
