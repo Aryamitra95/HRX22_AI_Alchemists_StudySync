@@ -50,6 +50,7 @@ const Study: React.FC = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [score, setScore] = useState(0);
+    const [isQuizCompleted, setIsQuizCompleted] = useState(false);
 
     // Get user data on component mount
     useEffect(() => {
@@ -217,12 +218,7 @@ const Study: React.FC = () => {
     };
 
     const handleFinishQuiz = () => {
-        setShowModal(false);
-        // Reset quiz state
-        setCurrentQuestionIndex(0);
-        setSelectedAnswer(null);
-        setIsAnswered(false);
-        setScore(0);
+        setIsQuizCompleted(true);
     };
 
     const resetQuiz = () => {
@@ -230,6 +226,12 @@ const Study: React.FC = () => {
         setSelectedAnswer(null);
         setIsAnswered(false);
         setScore(0);
+        setIsQuizCompleted(false);
+    };
+
+    const handleCloseQuiz = () => {
+        setShowModal(false);
+        resetQuiz();
     };
 
     const videoId = getVideoId(url);
@@ -349,70 +351,115 @@ const Study: React.FC = () => {
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-2xl font-bold text-gray-800">Quiz</h2>
                                 <button
-                                    onClick={handleCloseModal}
+                                    onClick={handleCloseQuiz}
                                     className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                                 >
                                     ×
                                 </button>
                             </div>
                             
-                            {quiz && quiz.length > 0 && currentQuestionIndex < quiz.length ? (
-                                <div className="text-gray-700">
-                                    {/* Progress indicator */}
-                                    <div className="mb-4 text-sm text-gray-500">
-                                        Question {currentQuestionIndex + 1} of {quiz.length}
-                                    </div>
-                                    
-                                    {/* Current question */}
-                                    <div className="mb-6">
-                                        <h3 className="text-lg font-semibold mb-4">
-                                            {quiz[currentQuestionIndex].question}
-                                        </h3>
+                            {quiz && quiz.length > 0 ? (
+                                isQuizCompleted ? (
+                                    // Quiz completion screen
+                                    <div className="text-gray-700 text-center">
+                                        <div className="mb-6">
+                                            <h3 className="text-2xl font-bold text-green-600 mb-2">
+                                                Quiz Completed!
+                                            </h3>
+                                            <div className="text-4xl font-bold text-blue-600 mb-2">
+                                                {score}/{quiz.length}
+                                            </div>
+                                            <div className="text-lg text-gray-600 mb-4">
+                                                {Math.round((score / quiz.length) * 100)}% Score
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                {score === quiz.length ? "Perfect score! 🎉" : 
+                                                 score >= quiz.length * 0.8 ? "Great job! 👍" :
+                                                 score >= quiz.length * 0.6 ? "Good effort! 👏" : "Keep practicing! 💪"}
+                                            </div>
+                                        </div>
                                         
-                                        {/* Answer options */}
-                                        <div className="space-y-3">
-                                            {quiz[currentQuestionIndex].options.map((option, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => handleAnswerSelect(option)}
-                                                    disabled={isAnswered}
-                                                    className={`w-full p-3 text-left rounded-lg border transition-colors ${
-                                                        selectedAnswer === option
-                                                            ? option === quiz[currentQuestionIndex].answer
-                                                                ? 'bg-green-100 border-green-500 text-green-700'
-                                                                : 'bg-red-100 border-red-500 text-red-700'
-                                                            : isAnswered && option === quiz[currentQuestionIndex].answer
-                                                            ? 'bg-green-100 border-green-500 text-green-700'
-                                                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                                                    } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
-                                                >
-                                                    {option}
-                                                </button>
-                                            ))}
+                                        <div className="flex justify-center gap-3">
+                                            <button
+                                                onClick={resetQuiz}
+                                                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                                            >
+                                                Retake Quiz
+                                            </button>
+                                            <button
+                                                onClick={handleCloseQuiz}
+                                                className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                                            >
+                                                Close
+                                            </button>
                                         </div>
                                     </div>
-                                    
-                                    {/* Navigation button */}
-                                    {isAnswered && (
-                                        <div className="flex justify-end">
-                                            {currentQuestionIndex < quiz.length - 1 ? (
-                                                <button
-                                                    onClick={handleNextQuestion}
-                                                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                                                >
-                                                    Next
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={handleFinishQuiz}
-                                                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
-                                                >
-                                                    Finish
-                                                </button>
-                                            )}
+                                ) : currentQuestionIndex < quiz.length ? (
+                                    // Active quiz screen
+                                    <div className="text-gray-700">
+                                        {/* Progress indicator and score */}
+                                        <div className="mb-4 flex justify-between items-center">
+                                            <div className="text-sm text-gray-500">
+                                                Question {currentQuestionIndex + 1} of {quiz.length}
+                                            </div>
+                                            <div className="text-sm font-semibold text-blue-600">
+                                                Score: {score}/{currentQuestionIndex + 1}
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
+                                        
+                                        {/* Current question */}
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-semibold mb-4">
+                                                {quiz[currentQuestionIndex].question}
+                                            </h3>
+                                            
+                                            {/* Answer options */}
+                                            <div className="space-y-3">
+                                                {quiz[currentQuestionIndex].options.map((option, index) => (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => handleAnswerSelect(option)}
+                                                        disabled={isAnswered}
+                                                        className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                                                            isAnswered
+                                                                ? option === quiz[currentQuestionIndex].answer
+                                                                    ? 'bg-green-100 border-green-500 text-green-700'
+                                                                    : selectedAnswer === option
+                                                                    ? 'bg-red-100 border-red-500 text-red-700'
+                                                                    : 'bg-gray-50 border-gray-300 text-gray-700'
+                                                                : selectedAnswer === option
+                                                                ? 'bg-blue-100 border-blue-500 text-blue-700'
+                                                                : 'bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700'
+                                                        } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                                                    >
+                                                        {option}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Navigation button */}
+                                        {isAnswered && (
+                                            <div className="flex justify-end">
+                                                {currentQuestionIndex < quiz.length - 1 ? (
+                                                    <button
+                                                        onClick={handleNextQuestion}
+                                                        className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        Next
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={handleFinishQuiz}
+                                                        className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
+                                                    >
+                                                        Finish
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null
                             ) : (
                                 <div className="text-gray-700">
                                     <p>No quiz questions available.</p>
