@@ -86,7 +86,7 @@ const TripTrendsChart = () => {
 
 
     return (
-        <div className="rounded-xl border p-4 shadow-sm w-full h-[300px] bg-white">
+        <div className="rounded-xl border p-8 shadow-sm w-full h-[300px] bg-white">
             <h3 className="font-semibold text-lg mb-2">Concentration Level (by Day)</h3>
             <Bar data={chartData} options={options} />
         </div>

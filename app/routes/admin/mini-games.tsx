@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import MiniGames from '../../../components/MiniGames';
 
 interface Achievement {
@@ -23,6 +23,7 @@ interface GameCategory {
 const MiniGamesPage = () => {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [showAchievements, setShowAchievements] = useState(false);
+    const gamesSectionRef = useRef<HTMLDivElement>(null);
 
     // Mock data for achievements
     const achievements: Achievement[] = [
@@ -67,7 +68,7 @@ const MiniGamesPage = () => {
     const gameCategories: GameCategory[] = [
         {
             id: 'memory',
-            name: 'Memory Games',
+            name: 'Memory Enhancing',
             description: 'Improve your memory and recall',
             icon: '🧠',
             gameCount: 5,
@@ -101,6 +102,10 @@ const MiniGamesPage = () => {
 
     const unlockedAchievements = achievements.filter(a => a.unlocked).length;
     const totalAchievements = achievements.length;
+
+    const handleStartChallenge = () => {
+        gamesSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -244,14 +249,14 @@ const MiniGamesPage = () => {
                             <h2 className="text-xl font-bold mb-2">Daily Challenge</h2>
                             <p className="text-blue-100">Complete today's memory challenge to earn bonus points!</p>
                         </div>
-                        <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                        <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors" onClick={handleStartChallenge}>
                             Start Challenge
                         </button>
                     </div>
                 </div>
 
                 {/* Mini Games Component */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200" ref={gamesSectionRef}>
                     <div className="p-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-gray-900">
                             {selectedCategory 

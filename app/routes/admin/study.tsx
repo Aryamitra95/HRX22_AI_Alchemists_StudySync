@@ -238,7 +238,7 @@ const Study: React.FC = () => {
         const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         setInputUrl(youtubeUrl);
         setUrl(youtubeUrl);
-        setShowPlaylistManager(false);
+        setShowPlaylistManager(true);
         alert(`Selected: ${title}`);
     };
 
@@ -550,7 +550,7 @@ const Study: React.FC = () => {
 
             {/* Playlist Manager Modal */}
             {showPlaylistManager && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className=" inset-0 bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
                         <PlaylistManager 
                             onVideoSelect={handleVideoSelect}
@@ -562,7 +562,7 @@ const Study: React.FC = () => {
 
             {/* Quiz Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="flex items-center justify-center ">
                     <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">Quiz</h2>

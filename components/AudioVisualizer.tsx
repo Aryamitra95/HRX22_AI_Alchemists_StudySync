@@ -45,6 +45,11 @@ const AudioVisualizer = () => {
                 ctx.clearRect(0, 0, WIDTH, HEIGHT);
                 analyserRef.current!.getByteFrequencyData(dataArrayRef.current!);
 
+                // Calculate average frequency for threshold comparison
+                const average = dataArrayRef.current!.reduce((sum, value) => sum + value, 0) / dataArrayRef.current!.length;
+                const threshold = 100;
+                const isNoisy = average > threshold;
+
                 const bars = dataArrayRef.current!.length;
                 for (let i = 0; i < bars; i++) {
                     const value = dataArrayRef.current![i];
@@ -59,10 +64,26 @@ const AudioVisualizer = () => {
                     ctx.beginPath();
                     ctx.moveTo(x1, y1);
                     ctx.lineTo(x2, y2);
-                    ctx.strokeStyle = `rgba(30, 144, 255, ${value / 255})`; // DodgerBlue
+                    ctx.strokeStyle = isNoisy ? `rgba(255, 0, 0, ${value / 255})` : `rgba(59, 130, 246, ${value / 255})`; // Red for noisy, Green for calm
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }
+
+                // Draw text in center with z-axis depth effect
+                ctx.save();
+                ctx.font = "bold 24px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                
+                // Create shadow for z-axis depth effect
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                ctx.fillStyle = isNoisy ? "rgba(255, 0, 0, 0.8)" : "rgba(59, 130, 246, 0.8)"; // Red for noisy, Green for calm
+                ctx.fillText(isNoisy ? "NOISY" : "CALM", centerX, centerY);
+                ctx.restore();
 
                 requestAnimationFrame(drawVisualizer);
             };

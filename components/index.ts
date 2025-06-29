@@ -15,3 +15,4 @@ export {default as AuthGuard} from './AuthGuard';
 export {default as WebSummarizer} from './WebSummarizer';
 export {default as PlaylistManager} from './PlaylistManager';
 export {default as ProgressTab} from './ProgressTab';
+export {default as SplashCursor} from './SplashCursor';

@@ -166,25 +166,25 @@ const Dashboard = ({loaderData}:Route.ComponentProps) => {
                 {/* Quick Actions */}
                 <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-8">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button className="flex items-center justify-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <div className="flex gap-4">
+                        <a href="/study" className="flex-1 flex items-center justify-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg">
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Start Study Session
-                        </button>
-                        <button className="flex items-center justify-center p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        </a>
+                        <a href="/reports" className="flex-1 flex items-center justify-center p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg">
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                             View Reports
-                        </button>
-                        <button className="flex items-center justify-center p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        </a>
+                        <a href="/admin/playlist" className="flex-1 flex items-center justify-center p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             Create Playlist
-                        </button>
+                        </a>
                     </div>
                 </div>
 
@@ -201,17 +201,14 @@ const Dashboard = ({loaderData}:Route.ComponentProps) => {
                 </div>
 
                 {/* Progress Tab Component */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-                    <div className="p-6 border-b border-gray-100">
-                        <h3 className="text-lg font-bold text-gray-900">Your Playlists</h3>
-                    </div>
+                
                     <div className="p-6">
                         <ProgressTab 
                             playlists={playlists}
                             onPlaylistsUpdate={handlePlaylistsUpdate}
                         />
                     </div>
-                </div>
+                
             </div>
         </main>
     )

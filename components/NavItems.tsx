@@ -43,12 +43,12 @@ const NavItems = ({ handleClick }: { handleClick?: () => void}) => {
                     ))}
                 </nav>
 
-                <footer className="nav-footer">
+                <footer className="nav-footer mb-4">
                     <img src={user?.imageUrl || '/assets/images/david.webp'} alt={user?.name || 'David'} />
 
                     <article>
-                        <h2>{user?.name || 'Guest'}</h2>
-                        <p>{user?.email || 'Email not available'}</p>
+                        <h2>{user?.name || 'Animesh'}</h2>
+                        <p>{user?.email || 'animeshkumarbiswas3@gmail.com'}</p>
                     </article>
 
                     <button
