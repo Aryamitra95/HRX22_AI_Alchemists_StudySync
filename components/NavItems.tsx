@@ -18,7 +18,7 @@ const NavItems = ({ handleClick }: { handleClick?: () => void}) => {
 
     return (
         <section className="nav-items">
-            <Link to='/' className="link-logo">
+            <Link to='./dashboard' className="link-logo">
                 <img src="/assets/icons/logo.svg" alt="logo" className="size-[30px]" />
                 <h1>Study Sync</h1>
             </Link>
@@ -29,14 +29,14 @@ const NavItems = ({ handleClick }: { handleClick?: () => void}) => {
                         <NavLink to={href} key={id}>
                             {({ isActive }: { isActive: boolean }) => (
                                 <div className={cn('group nav-item', {
-                                    'bg-primary-100 !text-white': isActive
+                                    'active': isActive
                                 })} onClick={handleClick}>
                                     <img
                                         src={icon}
                                         alt={label}
-                                        className={`group-hover:brightness-0 size-0 group-hover:invert ${isActive ? 'brightness-0 invert' : 'text-dark-200'}`}
+                                        className={`size-5 transition-all duration-200 ${isActive ? 'brightness-0 invert' : 'group-hover:brightness-0 group-hover:invert'}`}
                                     />
-                                    {label}
+                                    <span className="relative z-10">{label}</span>
                                 </div>
                             )}
                         </NavLink>
@@ -53,12 +53,12 @@ const NavItems = ({ handleClick }: { handleClick?: () => void}) => {
 
                     <button
                         onClick={handleLogout}
-                        className="cursor-pointer"
+                        className="p-2 rounded-lg transition-all duration-200 hover:bg-red-50 hover:text-red-600 hover:shadow-sm border border-transparent hover:border-red-200/50 cursor-pointer group"
                     >
                         <img
                             src="/assets/icons/logout.svg"
                             alt="logout"
-                            className="size-6"
+                            className="size-5 transition-all duration-200 group-hover:brightness-0 group-hover:invert"
                         />
                     </button>
                 </footer>

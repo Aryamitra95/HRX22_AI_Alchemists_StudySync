@@ -277,35 +277,38 @@
     }
   }
   .link-logo {
-    @apply flex items-center gap-1.5 py-10 border-b border-light-100;
+    @apply flex items-center gap-2 py-8  transition-all duration-200 hover:bg-gray-50/50 rounded-lg mx-2 px-2;
     h1 {
-      @apply text-base md:text-2xl font-bold text-dark-100;
+      @apply text-base md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
     }
   }
   .nav-footer {
-    @apply flex items-center gap-2.5 pb-8;
+    @apply flex items-center gap-3 pb-6 px-2 py-4 bg-white/60 rounded-xl border border-gray-100/50 shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md hover:bg-white/80;
     img {
-      @apply size-10 rounded-full aspect-square;
+      @apply size-12 rounded-full aspect-square ring-2 ring-gray-100 shadow-sm;
     }
     article {
-      @apply flex flex-col gap-[2px] max-w-[115px];
+      @apply flex flex-col gap-1 max-w-[120px] flex-1;
       h2 {
-        @apply text-sm md:text-base font-semibold text-dark-200 truncate;
+        @apply text-sm md:text-base font-semibold text-gray-800 truncate;
       }
       p {
-        @apply text-gray-100 text-xs md:text-sm font-normal truncate;
+        @apply text-gray-500 text-xs md:text-sm font-normal truncate;
       }
     }
   }
   .mobile-sidebar {
-    @apply lg:hidden flex flex-col gap-5;
+    @apply lg:hidden flex flex-col gap-5 bg-white/95 backdrop-blur-sm border-b border-gray-100/50;
     header {
-      @apply flex justify-between items-center border-b border-light-100;
+      @apply flex justify-between items-center border-b border-gray-100/60 px-4 py-3;
       h1 {
-        @apply text-base md:text-2xl font-bold text-dark-100;
+        @apply text-base md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
       }
       a {
-        @apply flex items-center gap-1.5 py-10;
+        @apply flex items-center gap-2 py-2 transition-all duration-200 hover:bg-gray-50/50 rounded-lg px-2;
+      }
+      button {
+        @apply p-2 rounded-lg transition-all duration-200 hover:bg-gray-100/50 hover:shadow-sm;
       }
     }
   }
@@ -346,11 +349,11 @@
     }
   }
   .nav-items {
-    @apply flex flex-col px-6 h-full;
+    @apply flex flex-col px-6 h-full bg-gradient-to-b from-white to-gray-50/30 backdrop-blur-sm border-r border-gray-100/50;
     .container {
       @apply flex flex-col justify-between h-full;
       nav {
-        @apply flex flex-col gap-3.5 pt-9;
+        @apply flex flex-col gap-2 pt-9;
       }
     }
   }
@@ -358,7 +361,10 @@
   .admin-layout {
     @apply flex flex-col lg:flex-row h-screen w-full;
     .children {
-      @apply w-full h-full bg-light-200 pt-12 lg:pt-10;
+      @apply w-full h-full bg-gradient-to-br from-gray-50 to-white pt-12 lg:pt-10;
+    }
+    aside {
+      @apply shadow-lg border-r border-gray-100/50 bg-white/95 backdrop-blur-sm;
     }
   }
   .user-trip {
@@ -387,6 +393,45 @@
     article {
       @apply flex flex-col gap-[30px] w-full;
     }
+  }
+
+  .nav-item {
+    @apply flex items-center text-sm md:text-base font-medium cursor-pointer gap-3 py-3 px-4 rounded-xl text-gray-600 transition-all duration-200 ease-in-out hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-700 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-transparent hover:border-blue-100/50 relative overflow-hidden;
+  }
+  
+  .nav-item::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 transition-opacity duration-200 ease-in-out;
+  }
+  
+  .nav-item:hover::before {
+    @apply opacity-100;
+  }
+  
+  .nav-item.active {
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 border-blue-500/20;
+  }
+  
+  .nav-item.active::before {
+    @apply opacity-0;
+  }
+  
+  .nav-item:focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  }
+  
+  .nav-item:focus-visible::before {
+    @apply opacity-100;
+  }
+  
+  /* Enhanced focus states for buttons */
+  button:focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  }
+  
+  /* Smooth transitions for all interactive elements */
+  .nav-items * {
+    @apply transition-all duration-200 ease-in-out;
   }
 }
 
@@ -460,9 +505,6 @@
   }
   .trip-grid {
     @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-7;
-  }
-  .nav-item {
-    @apply flex items-center text-xs md:text-lg font-normal cursor-pointer gap-2.5 py-[18px] px-3.5 rounded-lg text-dark-200 hover:bg-primary-100 hover:text-white;
   }
   .combo-box {
     @apply !p-3.5 !border w-full !border-light-400 !rounded-xl !text-base !text-dark-300 !font-normal;

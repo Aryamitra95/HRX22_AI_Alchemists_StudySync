@@ -8,12 +8,12 @@ const AdminLayout = () => {
         <AuthGuard requireAuth={true} requireAdmin={true}>
             <div className="admin-layout">
                 <MobileSidebar />
-                <aside className="w-full max-w-[270px] hidden lg:block">
+                <aside className="fixed top-0 left-0 h-screen w-[270px] z-30 hidden lg:block bg-white/95 shadow-lg border-r border-gray-100/50 backdrop-blur-sm">
                     <SidebarComponent width={270} enableGestures={false}>
                         <NavItems />
                     </SidebarComponent>
                 </aside>
-                <aside className="children">
+                <aside className="children ml-0 lg:ml-[270px]">
                     <Outlet />
                 </aside>
             </div>
