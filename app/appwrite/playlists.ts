@@ -17,6 +17,7 @@ export interface Video {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  
 }
 
 export interface Playlist {
