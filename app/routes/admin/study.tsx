@@ -1,6 +1,6 @@
 import React,{useState, useRef, useEffect} from 'react'
 import ReactMarkdown from 'react-markdown';
-import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer, PlaylistManager} from "../../../components";
+import {FocusTimer, Header, ScoreGraph, Summarizer, WebcamFeed, YoutubePlayer, PlaylistManager, SessionTimer} from "../../../components";
 import AudioVisualizer from 'components/AudioVisualizer';
 import { getUser } from '../../appwrite/auth';
 import { getUserPlaylistsWithVideos } from '../../appwrite/playlists';
@@ -145,13 +145,13 @@ const Study: React.FC = () => {
     // Session timer
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isPlaying) {
+        if (showVideo) {
             interval = setInterval(() => {
                 setSessionTime(prev => prev + 1);
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isPlaying]);
+    }, [showVideo]);
 
     useEffect(() => {
         console.log('Distraction score updated:', distractionScore);
@@ -254,6 +254,16 @@ const Study: React.FC = () => {
             alert('No quiz questions available. Please load a video first.');
             return;
         }
+        
+        console.log('Opening quiz with data:', quizToUse);
+        quizToUse.forEach((q, index) => {
+            console.log(`Question ${index + 1}:`, {
+                question: q.question,
+                options: q.options,
+                answer: q.answer
+            });
+        });
+        
         setQuiz(quizToUse);
         resetQuiz();
         setShowModal(true);
@@ -266,12 +276,26 @@ const Study: React.FC = () => {
     // Quiz handlers
     const handleAnswerSelect = (answer: string) => {
         if (isAnswered || !quiz || !quiz[currentQuestionIndex]) return;
-        
+
+        const currentQuestion = quiz[currentQuestionIndex];
+        // Map letter answer (e.g., 'B') to the correct option string if needed
+        let correctAnswerString = currentQuestion.answer;
+        if (
+            typeof currentQuestion.answer === "string" &&
+            currentQuestion.answer.length === 1 &&
+            currentQuestion.options.length >= 2
+        ) {
+            // Assume answer is 'A', 'B', 'C', etc.
+            const idx = currentQuestion.answer.charCodeAt(0) - 65; // 'A' = 0, 'B' = 1, etc.
+            correctAnswerString = currentQuestion.options[idx];
+        }
+
+        const isCorrect = answer === correctAnswerString;
+
         setSelectedAnswer(answer);
         setIsAnswered(true);
-        
-        // Update score if answer is correct
-        if (answer === quiz[currentQuestionIndex].answer) {
+
+        if (isCorrect) {
             setScore(prev => prev + 1);
         }
     };
@@ -510,9 +534,9 @@ const Study: React.FC = () => {
                             </div>
 
                             {/* Study Timer */}
-                            <div className="bg-white rounded-xl border border-gray-200 p-4 w-full">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Study Timer</h3>
-                                <FocusTimer isPlaying={isPlaying} />
+                            <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-gray-200 p-4 w-full">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Focus Timer</h3>
+                                <FocusTimer />
                             </div>
 
                             <div className="bg-white rounded-xl border border-gray-200 p-4 w-full">
@@ -613,73 +637,98 @@ const Study: React.FC = () => {
                                         <h3 className="text-lg font-semibold mb-4">
                                             {quiz[currentQuestionIndex].question}
                                         </h3>
-                                        
                                         {/* Answer options */}
-                                        <div className="space-y-3">
-                                            {quiz[currentQuestionIndex].options.map((option, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => handleAnswerSelect(option)}
-                                                    disabled={isAnswered}
-                                                    className={`w-full p-3 text-left rounded-lg border transition-colors ${
-                                                        isAnswered
-                                                            ? option === quiz[currentQuestionIndex].answer
-                                                                ? 'bg-green-100 border-green-500 text-green-700 font-semibold'
-                                                                : selectedAnswer === option
-                                                                    ? 'bg-red-100 border-red-500 text-red-700 font-semibold'
-                                                                    : 'bg-gray-50 border-gray-300 text-gray-700'
-                                                            : selectedAnswer === option
-                                                                ? 'bg-blue-100 border-blue-500 text-blue-700'
-                                                                : 'bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700'
-                                                    } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span>{option}</span>
-                                                        {isAnswered && (
-                                                            <span className="text-lg">
-                                                                {option === quiz[currentQuestionIndex].answer 
-                                                                    ? '✓' 
-                                                                    : selectedAnswer === option && option !== quiz[currentQuestionIndex].answer 
-                                                                    ? '✗' 
-                                                                    : ''
-                                                                }
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        {(() => {
+                                            const currentQuestion = quiz[currentQuestionIndex];
+                                            let correctAnswerString = currentQuestion.answer;
+                                            if (
+                                                typeof currentQuestion.answer === "string" &&
+                                                currentQuestion.answer.length === 1 &&
+                                                currentQuestion.options.length >= 2
+                                            ) {
+                                                const idx = currentQuestion.answer.charCodeAt(0) - 65;
+                                                correctAnswerString = currentQuestion.options[idx];
+                                            }
+                                            return (
+                                                <div className="space-y-3">
+                                                    {currentQuestion.options.map((option, index) => (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => handleAnswerSelect(option)}
+                                                            disabled={isAnswered}
+                                                            className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                                                                isAnswered
+                                                                    ? option === correctAnswerString
+                                                                        ? 'bg-green-100 border-green-500 text-green-700 font-semibold'
+                                                                        : selectedAnswer === option
+                                                                            ? 'bg-red-100 border-red-500 text-red-700 font-semibold'
+                                                                            : 'bg-gray-50 border-gray-300 text-gray-700'
+                                                                    : selectedAnswer === option
+                                                                        ? 'bg-blue-100 border-blue-500 text-blue-700'
+                                                                        : 'bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700'
+                                                            } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span>{option}</span>
+                                                                {isAnswered && (
+                                                                    <span className="text-lg">
+                                                                        {option === correctAnswerString
+                                                                            ? '✓'
+                                                                            : selectedAnswer === option && option !== correctAnswerString
+                                                                                ? '✗'
+                                                                                : ''
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
-                                    
                                     {/* Answer feedback */}
-                                    {isAnswered && (
-                                        <div className={`mb-4 p-4 rounded-lg ${
-                                            selectedAnswer === quiz[currentQuestionIndex].answer
-                                                ? 'bg-green-50 border border-green-200'
-                                                : 'bg-red-50 border border-red-200'
-                                        }`}>
-                                            <div className="flex items-center">
-                                                <span className={`text-lg mr-2 ${
-                                                    selectedAnswer === quiz[currentQuestionIndex].answer
-                                                        ? 'text-green-600'
-                                                        : 'text-red-600'
+                                    {(() => {
+                                        const currentQuestion = quiz[currentQuestionIndex];
+                                        let correctAnswerString = currentQuestion.answer;
+                                        if (
+                                            typeof currentQuestion.answer === "string" &&
+                                            currentQuestion.answer.length === 1 &&
+                                            currentQuestion.options.length >= 2
+                                        ) {
+                                            const idx = currentQuestion.answer.charCodeAt(0) - 65;
+                                            correctAnswerString = currentQuestion.options[idx];
+                                        }
+                                        return (
+                                            isAnswered && (
+                                                <div className={`mb-4 p-4 rounded-lg ${
+                                                    selectedAnswer === correctAnswerString
+                                                        ? 'bg-green-50 border border-green-200'
+                                                        : 'bg-red-50 border border-red-200'
                                                 }`}>
-                                                    {selectedAnswer === quiz[currentQuestionIndex].answer ? '✓' : '✗'}
-                                                </span>
-                                                <span className={`font-semibold ${
-                                                    selectedAnswer === quiz[currentQuestionIndex].answer
-                                                        ? 'text-green-700'
-                                                        : 'text-red-700'
-                                                }`}>
-                                                    {selectedAnswer === quiz[currentQuestionIndex].answer 
-                                                        ? `Correct! The answer is: ${quiz[currentQuestionIndex].answer}` 
-                                                        : `Incorrect. The correct answer is: ${quiz[currentQuestionIndex].answer}`
-                                                    }
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
+                                                    <div className="flex items-center">
+                                                        <span className={`text-lg mr-2 ${
+                                                            selectedAnswer === correctAnswerString
+                                                                ? 'text-green-600'
+                                                                : 'text-red-600'
+                                                        }`}>
+                                                            {selectedAnswer === correctAnswerString ? '✓' : '✗'}
+                                                        </span>
+                                                        <span className={`font-semibold ${
+                                                            selectedAnswer === correctAnswerString
+                                                                ? 'text-green-700'
+                                                                : 'text-red-700'
+                                                        }`}>
+                                                            {selectedAnswer === correctAnswerString
+                                                                ? `Correct! The answer is: ${correctAnswerString}`
+                                                                : `Incorrect. The correct answer is: ${correctAnswerString}`
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        );
+                                    })()}
                                     {/* Navigation button */}
                                     {isAnswered && (
                                         <div className="flex justify-end">
